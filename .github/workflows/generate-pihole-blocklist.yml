@@ -1,0 +1,46 @@
+name: Generate Pi-hole Blocklist
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 每天一次执行
+  workflow_dispatch:
+
+jobs:
+  generate-blocklist:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Create rule-set directory
+      run: |
+        mkdir -p rule-set/json-rules
+
+    - name: Generate geosite-torrent-websites.json
+      run: |
+        jq -n --argjson domains "$(
+          curl -fsSL https://raw.githubusercontent.com/sakib-m/Pi-hole-Torrent-Blocklist/main/all-torrent-websites.txt |
+          grep -v '^#' |
+          grep -v '^$' |
+          jq -R . |
+          jq -s .
+        )" '{"version": 3,"rules": [{"domain": $domains}]}' > rule-set/json-rules/geosite-torrent-websites.json
+
+    - name: Generate geosite-torrent-trackers.json
+      run: |
+        jq -n --argjson domains "$(
+          curl -fsSL https://raw.githubusercontent.com/sakib-m/Pi-hole-Torrent-Blocklist/main/all-torrent-trackers.txt |
+          grep -v '^#' |
+          grep -v '^$' |
+          jq -R . |
+          jq -s .
+        )" '{"version": 3,"rules": [{"domain": $domains}]}' > rule-set/json-rules/geosite-torrent-trackers.json
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.email "github-actions@github.com"
+        git config --global user.name "GitHub Actions"
+        git add rule-set/json-rules/*
+        git commit -m "Update Pi-hole blocklist"
+        git push
