@@ -13,9 +13,13 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Install Sing-box
+      run: |
+        curl -fsSL https://sing-box.app/install.sh | sh
+
     - name: Create rule-set directory
       run: |
-        mkdir -p rule-set/json-rules
+        mkdir -p rule-set
 
     - name: Generate geosite-torrent-websites.json
       run: |
@@ -25,7 +29,7 @@ jobs:
           grep -v '^$' |
           jq -R . |
           jq -s .
-        )" '{"version": 3,"rules": [{"domain": $domains}]}' > rule-set/json-rules/geosite-torrent-websites.json
+        )" '{"version": 3,"rules": [{"domain": $domains}]}' > rule-set/geosite-torrent-websites.json
 
     - name: Generate geosite-torrent-trackers.json
       run: |
@@ -35,12 +39,20 @@ jobs:
           grep -v '^$' |
           jq -R . |
           jq -s .
-        )" '{"version": 3,"rules": [{"domain": $domains}]}' > rule-set/json-rules/geosite-torrent-trackers.json
+        )" '{"version": 3,"rules": [{"domain": $domains}]}' > rule-set/geosite-torrent-trackers.json
+
+    - name: Compile geosite-torrent-websites.json to geosite-torrent-websites.srs
+      run: |
+        sing-box rule-set compile --output rule-set/geosite-torrent-websites.srs rule-set/geosite-torrent-websites.json
+
+    - name: Compile geosite-torrent-trackers.json to geosite-torrent-trackers.srs
+      run: |
+        sing-box rule-set compile --output rule-set/geosite-torrent-trackers.srs rule-set/geosite-torrent-trackers.json
 
     - name: Commit and push changes
       run: |
         git config --global user.email "github-actions@github.com"
         git config --global user.name "GitHub Actions"
-        git add rule-set/json-rules/*
-        git commit -m "Update Pi-hole blocklist"
+        git add rule-set/*
+        git commit -m "Update Pi-hole blocklist and binary rules"
         git push
