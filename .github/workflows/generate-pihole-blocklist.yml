@@ -53,6 +53,13 @@ jobs:
       run: |
         git config --global user.email "github-actions@github.com"
         git config --global user.name "GitHub Actions"
+        
+        # 检查是否有文件变动
+        git status
+        
+        # 如果有变动，执行 git add 和提交操作
         git add rule-set/*
-        git commit -m "Update Pi-hole blocklist and binary rules"
+        git diff --cached --quiet || git commit -m "Update Pi-hole blocklist and binary rules"
+        
+        # 如果有提交则推送
         git push
